@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nova Reposição - Bonecas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-xl mx-auto bg-white shadow-lg p-6 rounded-xl">
+    <h1 class="text-2xl font-bold mb-4">Separar Reposição de Bonecas</h1>
+
+    <form id="formReposicao" class="space-y-4">
+      <!-- QUIOSQUE -->
+      <div>
+        <label for="quiosque" class="block font-medium mb-1">Quiosque:</label>
+        <select id="quiosque" name="quiosque" class="w-full p-2 border rounded" required>
+          <% quiosques.forEach(q => { %>
+            <option value="<%= q.nome %>"><%= q.nome %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <!-- SKUS DE BONECAS -->
+      <div id="listaSkus" class="space-y-2">
+        <div class="flex items-center gap-2">
+          <input type="text" name="sku[]" placeholder="SKU da boneca" class="flex-1 p-2 border rounded" required />
+          <input type="number" name="quantidade[]" placeholder="Qtd" min="1" class="w-24 p-2 border rounded" required />
+        </div>
+      </div>
+
+      <!-- ADICIONAR MAIS LINHAS -->
+      <button type="button" onclick="adicionarLinha()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+        + Adicionar Boneca
+      </button>
+
+      <!-- ENVIAR -->
+      <div>
+        <button type="submit" class="w-full mt-4 bg-green-600 text-white py-2 rounded hover:bg-green-700">
+          Salvar Reposição
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    function adicionarLinha() {
+      const linha = document.createElement('div');
+      linha.className = 'flex items-center gap-2 mt-2';
+      linha.innerHTML = `
+        <input type="text" name="sku[]" placeholder="SKU da boneca" class="flex-1 p-2 border rounded" required />
+        <input type="number" name="quantidade[]" placeholder="Qtd" min="1" class="w-24 p-2 border rounded" required />
+      `;
+      document.getElementById('listaSkus').appendChild(linha);
+    }
+
+    document.getElementById('formReposicao').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const form = e.target;
+      const quiosque = form.quiosque.value;
+      const skus = Array.from(form.querySelectorAll('input[name="sku[]"]')).map(input => input.value.trim());
+      const quantidades = Array.from(form.querySelectorAll('input[name="quantidade[]"]')).map(input => Number(input.value));
+
+      const dados = {};
+      skus.forEach((sku, i) => {
+        if (sku) dados[sku] = quantidades[i];
+      });
+
+      const res = await fetch('/reposicao/nova', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quiosque, dados })
+      });
+
+      const json = await res.json();
+      alert(json.mensagem || 'Reposição enviada');
+      if (json.status === 'ok') window.location.reload();
+    });
+  </script>
+</body>
+</html>

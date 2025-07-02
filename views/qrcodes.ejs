@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-700 ease-in-out">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <title>Princesa Reborn - Qrcodes</title>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col min-h-screen font-sans transition-colors duration-700 ease-in-out">
+  <%- include('partials/header') %>
+
+  <h1 class="text-3xl font-bold mb-6">Lista de SKUs com QR Code</h1>
+  <div id="lista" class="grid grid-cols-3 gap-6"></div>
+  <%- include('partials/footer') %>
+
+  <script>
+    async function carregarSkus() {
+      const res = await fetch('/skus-com-qr');
+      const skus = await res.json();
+      const listaEl = document.getElementById('lista');
+      
+      skus.forEach(({sku, preco, foto, qrCode}) => {
+        const card = document.createElement('div');
+        card.className = "bg-white dark:bg-gray-800 p-4 rounded shadow flex flex-col items-center transition-colors duration-700 ease-in-out";
+
+        const imgFoto = document.createElement('img');
+        imgFoto.src = foto;
+        imgFoto.alt = sku;
+        imgFoto.className = "w-32 h-32 object-contain mb-2";
+
+        const h2 = document.createElement('h2');
+        h2.textContent = sku;
+        h2.className = "text-lg font-semibold text-gray-900 dark:text-gray-100";
+
+        const precoP = document.createElement('p');
+        precoP.textContent = `R$ ${preco.toFixed(2)}`;
+        precoP.className = "text-green-700 dark:text-green-400 font-bold mb-2";
+
+        const imgQr = document.createElement('img');
+        imgQr.src = qrCode;
+        imgQr.alt = `QR Code ${sku}`;
+        imgQr.className = "w-32 h-32";
+
+        card.appendChild(imgFoto);
+        card.appendChild(h2);
+        card.appendChild(precoP);
+        card.appendChild(imgQr);
+
+        listaEl.appendChild(card);
+      });
+    }
+
+    carregarSkus();
+  </script>
+  <script src="/js/darkmode.js"></script>
+
+</body>
+</html>
