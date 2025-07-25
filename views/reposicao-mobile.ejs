@@ -306,7 +306,8 @@ const qrCodeConfig = { fps: 10, qrbox: { width: 250, height: 250 } };
 try {
   const cameras = await Html5Qrcode.getCameras();
   if (cameras && cameras.length) {
-    const cameraId = cameras[0].id;
+    const cameraBack = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('traseira'));
+    const cameraId = cameraBack ? cameraBack.id : cameras[0].id;
 let podeLerQR = true;
 
 html5QrCode.start(
