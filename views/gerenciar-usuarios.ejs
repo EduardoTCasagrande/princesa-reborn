@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <title>Princesa Reborn - Usuários</title>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col min-h-screen font-sans transition-colors duration-300">
+
+  <%- include('partials/header') %>
+
+  <main class="max-w-5xl mx-auto p-6">
+    <h2 class="text-3xl font-bold mb-8 text-gray-800">Usuários Cadastrados</h2>
+
+    <ul class="space-y-6">
+      <% usuarios.forEach(user => { %>
+      <li class="bg-white p-6 rounded-lg shadow-md">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+
+          <!-- Usuário -->
+          <div>
+            <p class="font-semibold mb-1">Usuário:</p>
+            <% if (user.nivel === 'DEUS') { %>
+              <input type="text" value="DADO" disabled
+                class="w-full border border-gray-300 rounded-md p-2 bg-gray-100 cursor-not-allowed" />
+              <button disabled
+                class="mt-2 px-3 py-1 bg-gray-400 text-white rounded opacity-50 cursor-not-allowed">Protegido</button>
+            <% } else if (userSession.nivel === 'DEUS') { %>
+              <input type="text" id="username-<%= user.id %>" value="<%= user.username %>"
+                class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <button onclick="atualizarUsername(<%= user.id %>)"
+                class="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Alterar Username</button>
+            <% } else { %>
+              <input type="text" value="<%= user.username %>" disabled
+                class="w-full border border-gray-300 rounded-md p-2 bg-gray-100 cursor-not-allowed" />
+            <% } %>
+          </div>
+
+          <!-- Quiosque -->
+          <div>
+            <p class="font-semibold mb-1">Quiosque:</p>
+            <% if (user.nivel === 'DEUS') { %>
+              <input type="text" value="Protegido" disabled
+                class="w-full border border-gray-300 rounded-md p-2 bg-gray-100 cursor-not-allowed" />
+              <button disabled
+                class="mt-2 px-3 py-1 bg-gray-400 text-white rounded opacity-50 cursor-not-allowed">Protegido</button>
+            <% } else if (userSession.nivel === 'DEUS') { %>
+              <select id="quiosque-<%= user.id %>"
+                class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <% quiosques.forEach(q => { %>
+                  <option value="<%= q.nome %>" <%= q.nome === user.quiosque ? 'selected' : '' %>><%= q.nome %></option>
+                <% }) %>
+              </select>
+              <button onclick="atualizarQuiosque(<%= user.id %>)"
+                class="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">Alterar Quiosque</button>
+            <% } else { %>
+              <input type="text" value="<%= user.quiosque %>" disabled
+                class="w-full border border-gray-300 rounded-md p-2 bg-gray-100 cursor-not-allowed" />
+            <% } %>
+          </div>
+
+          <!-- Nível e Senha -->
+          <div>
+            <p class="font-semibold mb-1">Nível:</p>
+            <p class="mb-4 text-gray-700 font-mono"><%= user.nivel %></p>
+
+            <p class="font-semibold mb-1">Senha:</p>
+            <% if (user.nivel === 'DEUS') { %>
+              <input type="password" placeholder="Senha protegida" disabled
+                class="w-full border border-gray-300 rounded-md p-2 bg-gray-100 cursor-not-allowed" />
+              <button disabled
+                class="mt-2 px-3 py-1 bg-gray-400 text-white rounded opacity-50 cursor-not-allowed">Protegido</button>
+            <% } else if (userSession.nivel === 'DEUS') { %>
+              <input type="password" placeholder="Nova senha" id="senha-<%= user.id %>"
+                class="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <button onclick="atualizarSenha(<%= user.id %>)"
+                class="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">Atualizar Senha</button>
+            <% } else { %>
+              <input type="password" placeholder="Restrito" disabled
+                class="w-full border border-gray-300 rounded-md p-2 bg-gray-100 cursor-not-allowed" />
+            <% } %>
+          </div>
+
+        </div>
+      </li>
+      <% }) %>
+    </ul>
+
+    <p id="mensagem" class="mt-6 text-center text-lg font-semibold"></p>
+  </main>
+
+  <%- include('partials/whatsapp') %>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    async function atualizarSenha(id) {
+      const novaSenha = document.getElementById(`senha-${id}`).value;
+      if (!novaSenha) return alert("Digite a nova senha.");
+
+      const res = await fetch('/atualizar-senha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, novaSenha })
+      });
+
+      const data = await res.json();
+      mostrarMensagem(data);
+    }
+
+    async function atualizarQuiosque(userId) {
+      const select = document.getElementById(`quiosque-${userId}`);
+      const novoQuiosque = select.value;
+
+      const res = await fetch('/usuarios/atualizar-quiosque', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, novoQuiosque })
+      });
+
+      const data = await res.json();
+      mostrarMensagem(data);
+      if (data.status === 'ok') location.reload();
+    }
+
+    async function atualizarUsername(userId) {
+      const input = document.getElementById(`username-${userId}`);
+      const novoUsername = input.value.trim();
+      if (!novoUsername) return alert("Digite um novo username.");
+
+      const res = await fetch('/usuarios/atualizar-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, novoUsername })
+      });
+
+      const data = await res.json();
+      mostrarMensagem(data);
+      if (data.status === 'ok') location.reload();
+    }
+
+    function mostrarMensagem(data) {
+      const msg = document.getElementById("mensagem");
+      msg.textContent = data.mensagem;
+      msg.style.color = data.status === 'ok' ? 'green' : 'red';
+    }
+  </script>
+  <script src="/js/darkmode.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!-- Botão flutuante do WhatsApp -->
+<button onclick="abrirModalZap()" class="fixed bottom-6 right-6 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg z-50 transition">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/2062095_application_chat_communication_logo_whatsapp_icon.svg/2048px-2062095_application_chat_communication_logo_whatsapp_icon.svg.png" alt="WhatsApp" class="h-6 w-6" />
+</button>
+
+<!-- Modal de atendimento -->
+<div id="modal-zap" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
+  <div class="bg-white dark:bg-gray-900 rounded-xl p-6 max-w-md w-full shadow-xl relative text-gray-800 dark:text-gray-100">
+    <button onclick="fecharModalZap()" class="absolute top-2 right-3 text-gray-400 hover:text-red-500 text-lg font-bold">&times;</button>
+    <h2 class="text-xl font-bold mb-4 text-center">Atendimento via WhatsApp</h2>
+
+    <div class="space-y-4">
+      <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded">
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">💻 Problemas técnicos:</p>
+        <a href="https://wa.me/5511961510757?text=Olá,%20estou%20com%20um%20problema%20técnico%20no%20sistema." target="_blank" class="text-green-600 font-semibold hover:underline">
+          (11) 96151-0757
+        </a>
+      </div>
+    </div>
+        <div class="space-y-4">
+      <div class="bg-gray-100 dark:bg-gray-800 p-4 rounded">
+        <p class="text-sm text-gray-600 dark:text-gray-300 mb-1">📒 Plataforma de Cursos</p>
+        <a href="https://reborn-academy.onrender.com/login" target="_blank" class="text-green-600 font-semibold hover:underline">
+          Reborn Academy
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function abrirModalZap() {
+    const modal = document.getElementById('modal-zap');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function fecharModalZap() {
+    const modal = document.getElementById('modal-zap');
+    modal.classList.remove('flex');
+    modal.classList.add('hidden');
+  }
+</script>

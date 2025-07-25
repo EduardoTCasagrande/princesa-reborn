@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Etiqueta em Processamento</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="h-full flex flex-col items-center justify-center text-center p-6 text-gray-800 dark:text-gray-100 transition-colors duration-300">
+
+  <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 max-w-md w-full">
+    <h1 class="text-2xl font-semibold mb-4">🕒 Sua etiqueta está sendo processada</h1>
+    <p class="mb-6">Clique no botão abaixo para recarregar a página.</p>
+    <button 
+      onclick="location.reload()"
+      class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow transition duration-300"
+    >
+      🔄 Recarregar Página
+    </button>
+  </div>
+
+  <%- include('partials/whatsapp') %>
+  <script src="/js/darkmode.js"></script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-700 ease-in-out">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <title>Princesa Reborn - Qrcodes</title>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col min-h-screen font-sans transition-colors duration-700 ease-in-out">
+  <%- include('partials/header') %>
+
+  <main class="p-6 max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Lista de SKUs com QR Code</h1>
+    <input 
+      type="text" 
+      id="buscaSku" 
+      placeholder="Buscar SKU..." 
+      class="mb-6 w-full p-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+    />
+    <div id="lista" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+  </main>
+
+  <%- include('partials/whatsapp') %>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    async function carregarSkus() {
+      const res = await fetch('/skus-com-qr');
+      const skus = await res.json();
+      const listaEl = document.getElementById('lista');
+      const buscaInput = document.getElementById('buscaSku');
+
+      listaEl.innerHTML = ''; // limpar lista antes
+
+      // Armazenar os cards e o sku para filtro
+      const cards = [];
+
+      skus.forEach(({ sku, preco, foto, qrCode }) => {
+        const card = document.createElement('div');
+        card.className = "bg-white dark:bg-gray-800 p-4 rounded shadow flex flex-col items-center transition-colors duration-700 ease-in-out";
+
+        const imgFoto = document.createElement('img');
+        imgFoto.src = foto;
+        imgFoto.alt = sku;
+        imgFoto.className = "w-32 h-32 object-contain my-2";
+        card.appendChild(imgFoto);
+
+        const imgQr = document.createElement('img');
+        imgQr.src = qrCode;
+        imgQr.alt = `QR Code ${sku}`;
+        imgQr.className = "w-32 h-32 mb-2";
+        card.appendChild(imgQr);
+
+        const h2 = document.createElement('h2');
+        h2.textContent = sku;
+        h2.className = "text-lg font-semibold text-center text-gray-900 dark:text-gray-100";
+        card.appendChild(h2);
+
+        const btnImprimir = document.createElement('button');
+        btnImprimir.textContent = 'Imprimir';
+        btnImprimir.className = 'mt-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded';
+        btnImprimir.onclick = () => {
+          const win = window.open('', '_blank');
+          win.document.write(`
+            <div style="text-align:center">
+              <img src="${qrCode}" style="width:200px;"><br>
+              <strong style="font-size:20px">${sku}</strong><br>
+            </div>
+          `);
+          win.document.close();
+          win.print();
+        };
+        card.appendChild(btnImprimir);
+
+        listaEl.appendChild(card);
+        cards.push({ card, sku: sku.toLowerCase() });
+      });
+
+      // Evento de filtro
+      buscaInput.addEventListener('input', () => {
+        const termo = buscaInput.value.toLowerCase();
+        cards.forEach(({ card, sku }) => {
+          if (sku.includes(termo)) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    }
+
+    carregarSkus();
+
+  </script>
+
+  <script src="/js/darkmode.js"></script>
+</body>
+</html>

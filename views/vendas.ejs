@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Princesa Reborn - Vendas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    };
+  </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col min-h-screen font-sans transition-colors duration-300">
+
+  <%- include('partials/header') %>
+
+  <main class="flex-grow container mx-auto px-4 py-6">
+    <h1 class="text-3xl font-bold mb-6">Nova Venda</h1>
+
+    <div class="mb-6 flex items-center gap-3">
+      <label for="quiosqueSelect" class="font-semibold">Quiosque:</label>
+      <select id="quiosqueSelect" disabled class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-1 bg-gray-100 cursor-not-allowed transition">
+        <option value="">Carregando...</option>
+      </select>
+    </div>
+
+    <div class="flex flex-col md:flex-row gap-6">
+      <!-- Box 1: SKU -->
+      <section class="flex-1 bg-white dark:bg-gray-800/90 backdrop-blur rounded-lg shadow p-6 transition-colors">
+        <label for="inputSKU" class="block font-semibold mb-2">SKU:</label>
+        <input 
+          type="text" 
+          id="inputSKU" 
+          placeholder="Bipe ou digite SKU" 
+          autofocus 
+          class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+        />
+        <div id="mensagem" class="mb-3 min-h-[1.5rem] font-semibold"></div>
+        <ul id="listaVendas" class="max-h-72 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-600">
+          <!-- itens da venda aqui -->
+        </ul>
+      </section>
+
+      <!-- Box 2: Pagamento -->
+      <section class="flex-1 bg-white dark:bg-gray-800/90 backdrop-blur rounded-lg shadow p-6 flex flex-col transition-colors">
+        <h3 class="text-xl font-semibold mb-4">Formas de Pagamento</h3>
+
+        <div id="pagamentos" class="flex flex-col gap-3 mb-4"></div>
+
+        <div class="flex flex-wrap items-center gap-4 mb-4">
+          <button 
+            type="button" 
+            id="adicionarPagamento" 
+            class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 text-white px-4 py-2 rounded transition"
+          >
+            + Forma de Pagamento
+          </button>
+
+          <label for="desconto" class="font-semibold">Desconto (R$):</label>
+          <input 
+            type="number" 
+            id="desconto" 
+            placeholder="Ex: 10.00" 
+            step="0.01" 
+            min="0" 
+            class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 w-32 transition"
+          />
+        </div>
+
+        <input 
+          type="text" 
+          id="operador" 
+          placeholder="Nome do vendedor" 
+          class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+        />
+
+        <button 
+          id="finalizarVenda" 
+          class="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 text-white py-3 rounded font-semibold text-lg transition"
+        >
+          Finalizar Venda
+        </button>
+
+        <h2 id="totalVenda" class="mt-6 text-2xl font-bold">Total: R$ 0,00</h2>
+      </section>
+    </div>
+  </main>
+
+  <%- include('partials/whatsapp') %>
+
+  <%- include('partials/footer') %>
+
+  <!-- Modal 1: Deseja Nota Fiscal? -->
+  <div id="modalNotaFiscal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-lg">
+      <h2 class="text-xl font-bold mb-4">Deseja emitir Nota Fiscal?</h2>
+      <div class="flex justify-end gap-3">
+        <button id="btnSemNota" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Não</button>
+        <button id="btnComNota" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Sim</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Dados do Cliente -->
+  <div id="modalDadosCliente" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+    <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-lg">
+      <h2 class="text-xl font-bold mb-4">Dados do Cliente</h2>
+      <input 
+        type="text" 
+        id="nomeCliente" 
+        placeholder="Nome completo" 
+        class="w-full mb-3 px-3 py-2 rounded border dark:bg-gray-700 dark:text-white"
+      />
+      <input 
+        type="text" 
+        id="cpfCliente" 
+        placeholder="CPF (somente números)" 
+        maxlength="11"
+        class="w-full mb-4 px-3 py-2 rounded border dark:bg-gray-700 dark:text-white"
+      />
+      <div class="flex justify-end gap-3">
+        <button id="btnCancelarCliente" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Cancelar</button>
+        <button id="btnConfirmarCliente" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const inputSKU = document.getElementById("inputSKU");
+const quiosqueSelect = document.getElementById("quiosqueSelect");
+const mensagem = document.getElementById("mensagem");
+const listaVendas = document.getElementById("listaVendas");
+const finalizarVenda = document.getElementById("finalizarVenda");
+const totalVenda = document.getElementById("totalVenda");
+const descontoInput = document.getElementById("desconto");
+const pagamentosDiv = document.getElementById('pagamentos');
+const adicionarPagamentoBtn = document.getElementById('adicionarPagamento');
+
+let vendaAtual = {};
+let precos = {};
+let total = 0;
+let itensPromocionais = {};
+
+// Carrega o quiosque do usuário e bloqueia seleção
+async function carregarQuiosqueUsuario() {
+  const res = await fetch('/meu-quiosque');
+  const data = await res.json();
+  quiosqueSelect.innerHTML = '';
+  const opt = document.createElement('option');
+  opt.value = data.quiosque_id || data.quiosque || '';
+  opt.textContent = data.nome_quiosque || data.quiosque || 'Quiosque';
+  quiosqueSelect.appendChild(opt);
+  quiosqueSelect.disabled = true;
+}
+
+// Carrega lista de preços e fotos dos SKUs
+async function carregarPrecos() {
+  const res = await fetch('/api/precos');
+  const lista = await res.json();
+  precos = {};
+  lista.forEach(({ sku, preco, foto }) => {
+    precos[sku.toLowerCase()] = { preco, foto };
+  });
+}
+
+// Formata valor para Real BRL
+function formatarReal(valor) {
+  return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+// Marca / desmarca item promocional (preço zero)
+function marcarPromocional(sku) {
+  if (itensPromocionais[sku]) {
+    delete itensPromocionais[sku];
+  } else {
+    itensPromocionais[sku] = true;
+  }
+  atualizarListaVendas();
+}
+
+// Remove uma unidade do SKU da venda
+function removerSKU(sku) {
+  if (vendaAtual[sku]) {
+    vendaAtual[sku]--;
+    if (vendaAtual[sku] <= 0) {
+      delete vendaAtual[sku];
+      delete itensPromocionais[sku];
+    }
+    atualizarListaVendas();
+  }
+}
+
+// Atualiza visual da lista de itens e total
+function atualizarListaVendas() {
+  listaVendas.innerHTML = "";
+  let subtotalGeral = 0;
+
+  Object.entries(vendaAtual).forEach(([sku, qtd]) => {
+    const info = precos[sku] || { preco: 0, foto: '' };
+    let precoUnit = info.preco;
+
+    if (itensPromocionais[sku]) {
+      precoUnit = 0.01;
+    }
+
+    const subtotal = precoUnit * qtd;
+    subtotalGeral += subtotal;
+
+    const li = document.createElement("li");
+    li.className = "flex items-center gap-4 py-2";
+
+    li.innerHTML = `
+      <button class="text-red-600 hover:text-red-800 text-lg" onclick="removerSKU('${sku}')">❌</button>
+      <img src="${info.foto || '/imagens/skus/sem-foto.jpg'}" alt="${sku}" class="w-16 h-16 object-contain rounded" />
+      <div class="flex-1 flex flex-col justify-center">
+        <span class="font-semibold">${sku}</span>
+        <span>Qtd: ${qtd}</span>
+        <span>Total: ${formatarReal(precoUnit * qtd)}</span>
+      </div>
+      <button class="text-green-600 hover:text-green-800 text-xl" onclick="marcarPromocional('${sku}')">
+        ${itensPromocionais[sku] ? '✅' : '⚪'}
+      </button>
+    `;
+
+    listaVendas.appendChild(li);
+  });
+
+  const desconto = parseFloat(descontoInput.value) || 0;
+  total = subtotalGeral - desconto;
+  if (total < 0) total = 0;
+
+  totalVenda.textContent = `Total: ${formatarReal(total)}`;
+  ajustarValorDinheiro();
+}
+
+// Escuta Enter para registrar SKU digitado/bipado
+inputSKU.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    const sku = inputSKU.value.trim().toLowerCase();
+    inputSKU.value = "";
+
+    if (!precos[sku]) {
+      mensagem.textContent = `SKU '${sku}' não encontrado.`;
+      mensagem.className = "text-red-600";
+      return;
+    }
+
+    vendaAtual[sku] = (vendaAtual[sku] || 0) + 1;
+    mensagem.textContent = `SKU '${sku}' registrado.`;
+    mensagem.className = "text-green-600";
+    atualizarListaVendas();
+  }
+});
+
+// Atualiza lista quando muda desconto
+descontoInput.addEventListener("input", atualizarListaVendas);
+
+// Botão para adicionar forma de pagamento
+adicionarPagamentoBtn.addEventListener('click', () => {
+  const div = document.createElement('div');
+  div.className = 'pagamento flex gap-2 items-center';
+  div.innerHTML = `
+    <select class="forma border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 transition">
+      <option value="dinheiro">Dinheiro</option>
+      <option value="pix">Pix</option>
+      <option value="cartao">Cartão</option>
+    </select>
+    <input type="number" class="valor border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 w-full" placeholder="Valor (R$)" min="0" step="0.01" />
+    <button type="button" class="remover bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">Remover</button>
+  `;
+  div.querySelector('.remover').addEventListener('click', () => div.remove());
+  pagamentosDiv.appendChild(div);
+  div.querySelector('.valor').addEventListener('input', ajustarValorDinheiro);
+  div.querySelector('.forma').addEventListener('change', ajustarValorDinheiro);
+});
+
+// Coleta as formas de pagamento e valores
+function coletarPagamentos() {
+  const pagamentos = [];
+  pagamentosDiv.querySelectorAll('.pagamento').forEach(div => {
+    const forma = div.querySelector('.forma').value;
+    const valor = parseFloat(div.querySelector('.valor').value) || 0;
+    if (valor > 0) pagamentos.push({ forma, valor });
+  });
+  return pagamentos;
+}
+
+// Ajusta automaticamente o valor do pagamento em dinheiro para fechar o total
+function ajustarValorDinheiro() {
+  const pagamentos = pagamentosDiv.querySelectorAll('.pagamento');
+  let somaOutros = 0;
+  let dinheiroInput = null;
+
+  pagamentos.forEach(div => {
+    const forma = div.querySelector('.forma').value;
+    const valorInput = div.querySelector('.valor');
+    const valor = parseFloat(valorInput.value) || 0;
+
+    if (forma === 'dinheiro') {
+      dinheiroInput = valorInput;
+    } else {
+      somaOutros += valor;
+    }
+  });
+
+  if (dinheiroInput) {
+    const valorDinheiro = total - somaOutros;
+    dinheiroInput.value = valorDinheiro > 0 ? valorDinheiro.toFixed(2) : '0.00';
+  }
+}
+
+// Função para finalizar a venda, enviando para backend
+async function finalizarComVenda(cliente = null) {
+  const quiosque_id = quiosqueSelect.value;
+  const desconto = parseFloat(descontoInput.value) || 0;
+  const pagamentos = coletarPagamentos();
+  const operador = document.getElementById("operador").value.trim();
+
+  const res = await fetch('/vender', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      quiosque_id,
+      venda: vendaAtual,
+      pagamentos,
+      total,
+      desconto,
+      operador,
+      itensPromocionais,
+      cliente
+    })
+  });
+
+  const data = await res.json();
+
+  mensagem.textContent = data.mensagem || "Venda finalizada.";
+  mensagem.className = data.status === "ok" ? "text-green-600" : "text-red-600";
+
+  if (data.status === "ok") {
+    vendaAtual = {};
+    itensPromocionais = {};
+    listaVendas.innerHTML = "";
+    descontoInput.value = 0;
+    totalVenda.textContent = "Total: R$ 0,00";
+    pagamentosDiv.innerHTML = '';
+    adicionarPagamentoBtn.click();
+  }
+
+  return data; // Retorna o objeto da resposta!
+}
+
+// Ao clicar finalizar venda, valida tudo e abre modal nota fiscal
+finalizarVenda.addEventListener("click", () => {
+  const quiosque_id = quiosqueSelect.value;
+
+  if (!quiosque_id || Object.keys(vendaAtual).length === 0) {
+    mensagem.textContent = "Bipe ao menos 1 item.";
+    mensagem.className = "text-red-600";
+    return;
+  }
+
+  const pagamentos = coletarPagamentos();
+  if (pagamentos.length === 0) {
+    mensagem.textContent = "Adicione ao menos uma forma de pagamento.";
+    mensagem.className = "text-red-600";
+    return;
+  }
+
+  const somaPagamentos = pagamentos.reduce((acc, p) => acc + p.valor, 0);
+  if (Math.abs(somaPagamentos - total) > 0.01) {
+    mensagem.textContent = `Pagamentos (${formatarReal(somaPagamentos)}) ≠ Total (${formatarReal(total)})`;
+    mensagem.className = "text-red-600";
+    return;
+  }
+
+  // Mostrar modal Nota Fiscal
+  document.getElementById("modalNotaFiscal").classList.remove("hidden");
+});
+
+// Botão "Não" do modal Nota Fiscal (fecha modal e finaliza sem nota)
+document.getElementById("btnSemNota").addEventListener("click", async () => {
+  document.getElementById("modalNotaFiscal").classList.add("hidden");
+
+  const resposta = await finalizarComVenda();
+
+  if (resposta && resposta.status === 'ok') {
+    if (resposta.cupomUrl) {
+      window.open(resposta.cupomUrl, '_blank');
+    }
+  }
+});
+
+// Botão "Sim" do modal Nota Fiscal (fecha modal e abre modal dados do cliente)
+document.getElementById("btnComNota").addEventListener("click", () => {
+  document.getElementById("modalNotaFiscal").classList.add("hidden");
+  document.getElementById("modalDadosCliente").classList.remove("hidden");
+});
+
+// Botão cancelar no modal dados do cliente (fecha modal)
+document.getElementById("btnCancelarCliente").addEventListener("click", () => {
+  document.getElementById("modalDadosCliente").classList.add("hidden");
+});
+
+// Botão confirmar no modal dados do cliente (valida e finaliza venda com cliente e emite NFC-e)
+document.getElementById("btnConfirmarCliente").addEventListener("click", async () => {
+  let nome = document.getElementById("nomeCliente").value.trim();
+  let cpf = document.getElementById("cpfCliente").value.trim();
+
+  if (!nome && !cpf) {
+    nome = 'Consumidor não identificado';
+    cpf = '';
+  }
+  document.getElementById("modalDadosCliente").classList.add("hidden");
+
+  // Finaliza venda com dados do cliente
+  const resposta = await finalizarComVenda({ nome, cpf });
+
+  if (!resposta || !resposta.id_venda) {
+    alert('Erro ao finalizar venda antes de emitir nota.');
+    return;
+  }
+
+  const quiosque_id = quiosqueSelect.value;
+
+  // Pede emissão da nota fiscal no backend
+  const resEmitir = await fetch('/emitir-nota', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id_venda: resposta.id_venda,
+      quiosque_id,
+      cliente: { nome, cpf }
+    })
+  });
+
+  const dataEmitir = await resEmitir.json();
+
+  if (dataEmitir.status === 'ok') {
+    alert('Nota Fiscal emitida com sucesso!');
+    window.open(`/nfce/${dataEmitir.id_nota}/pdf`, '_blank');
+  } else if (dataEmitir.status === 'processando') {
+    alert('🕒 A nota fiscal ainda está sendo processada. Tente novamente em alguns segundos.'); // tenta abrir em 5 segundos
+  } else {
+    alert('❌ Erro ao emitir nota: ' + (dataEmitir.mensagem || 'Erro desconhecido'));
+  }
+})
+
+// Inicialização da página
+window.onload = async () => {
+  await carregarQuiosqueUsuario();
+  await carregarPrecos();
+  adicionarPagamentoBtn.click();
+};
+</script>
+
+  <script src="/js/darkmode.js"></script>
+</body>
+</html>

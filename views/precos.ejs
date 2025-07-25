@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <title>Princesa Reborn - Preços</title>
+  <script>
+    const nivelUsuario = "<%= userSession.nivel %>";
+  </script>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col min-h-screen font-sans transition-colors duration-300">
+  <%- include('partials/header') %>
+
+  <main class="max-w-5xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6">Lista de Preços com Fotos</h1>
+
+    <input
+      type="text"
+      id="buscaSku"
+      placeholder="Buscar SKU..."
+      oninput="filtrarSkus()"
+      class="mb-6 p-2 w-full max-w-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+
+    <table class="min-w-full border-collapse border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm rounded-md overflow-hidden">
+      <thead class="bg-gray-100 dark:bg-gray-700">
+        <tr>
+          <th class="border border-gray-300 dark:border-gray-700 px-4 py-2 text-left">SKU (Editar Nome)</th>
+          <th class="border border-gray-300 dark:border-gray-700 px-4 py-2 text-left">Preço (R$)</th>
+          <th class="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center">Foto</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-precos"></tbody>
+    </table>
+
+    <button
+      onclick="atualizarTodos()"
+      class="mt-6 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md shadow transition-colors"
+    >
+      Salvar Todos
+    </button>
+
+    <p id="msg" class="mt-4 font-semibold"></p>
+  </main>
+  <%- include('partials/whatsapp') %>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    async function carregarPrecos() {
+      try {
+        const res = await fetch('/api/precos');
+        if (!res.ok) throw new Error('Erro ao carregar preços');
+        const precos = await res.json();
+
+        const tbody = document.getElementById('tbody-precos');
+        tbody.innerHTML = '';
+
+        precos.forEach(({ sku, preco, foto }) => {
+          const tr = document.createElement('tr');
+
+          const inputSKU = (nivelUsuario === 'DEUS')
+            ? `<input type="text" class="sku-nome border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded px-2 py-1 w-full" value="${sku}" data-original-sku="${sku}" />`
+            : `<input type="text" value="${sku}" disabled class="bg-gray-100 dark:bg-gray-700 cursor-not-allowed border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded px-2 py-1 w-full" />`;
+
+          const precoInput = (nivelUsuario === 'DEUS')
+            ? `<input type="number" step="0.01" min="0" value="${preco.toFixed(2)}" data-sku="${sku}" class="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded px-2 py-1 w-full" />`
+            : `<input type="number" step="0.01" min="0" value="${preco.toFixed(2)}" disabled class="bg-gray-100 dark:bg-gray-700 cursor-not-allowed border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded px-2 py-1 w-full" />`;
+
+          tr.innerHTML = `
+            <td class="border border-gray-300 dark:border-gray-700 px-4 py-2">${inputSKU}</td>
+            <td class="border border-gray-300 dark:border-gray-700 px-4 py-2">${precoInput}</td>
+            <td class="border border-gray-300 dark:border-gray-700 px-4 py-2 text-center">
+              ${foto ? `<img src="${foto}" alt="Foto ${sku}" class="mx-auto max-w-16 max-h-16 object-contain" />` : 'Sem foto'}
+            </td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function atualizarTodos() {
+      if (nivelUsuario !== 'DEUS') {
+        mostrarMsg('Você não tem permissão para alterar os preços.', false);
+        return;
+      }
+
+      const linhas = document.querySelectorAll('#tbody-precos tr');
+      const atualizacoes = [];
+
+      linhas.forEach(linha => {
+        const inputSku = linha.querySelector('.sku-nome');
+        const inputPreco = linha.querySelector('input[type="number"]');
+        const preco = parseFloat(inputPreco.value);
+
+        const skuAntigo = inputSku?.getAttribute('data-original-sku')?.trim() || inputPreco.dataset.sku;
+        const skuNovo = inputSku?.value?.trim() || skuAntigo;
+
+        if (!skuAntigo || !skuNovo || isNaN(preco) || preco < 0) return;
+
+        atualizacoes.push({ skuAntigo, skuNovo, preco });
+      });
+
+      for (const { skuAntigo, skuNovo, preco } of atualizacoes) {
+        try {
+          if (skuAntigo !== skuNovo) {
+            await fetch('/precos/renomear', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ skuAntigo, skuNovo })
+            });
+          }
+
+          await fetch('/precos/' + encodeURIComponent(skuNovo), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preco })
+          });
+        } catch (err) {
+          console.error(`Erro ao atualizar SKU ${skuAntigo}:`, err);
+        }
+      }
+
+      mostrarMsg('Todos os SKUs foram atualizados com sucesso.', true);
+      carregarPrecos();
+    }
+
+    function mostrarMsg(msg, ok) {
+      const el = document.getElementById('msg');
+      el.textContent = msg || '';
+      el.style.color = ok ? 'limegreen' : 'tomato';
+    }
+
+    function filtrarSkus() {
+      const termo = document.getElementById('buscaSku').value.toLowerCase();
+      const linhas = document.querySelectorAll('#tbody-precos tr');
+
+      linhas.forEach(linha => {
+        const valorSKU = linha.querySelector('input[type="text"]').value.toLowerCase();
+        linha.style.display = valorSKU.includes(termo) ? '' : 'none';
+      });
+    }
+
+    carregarPrecos();
+  </script>
+
+  <script src="/js/darkmode.js"></script>
+</body>
+</html>

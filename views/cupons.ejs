@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gerenciar Cupons</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen text-gray-800">
+  <%- include('partials/header') %>
+
+  <main class="max-w-2xl mx-auto p-6">
+    <h1 class="text-3xl font-bold text-center mb-6">🧾 Cupons disponíveis</h1>
+
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-2">
+      <label class="flex items-center space-x-2 text-sm">
+        <input type="checkbox" id="selecionar-todos" class="accent-blue-500" onchange="toggleTodos(this)">
+        <span>Selecionar Todos</span>
+      </label>
+
+      <button onclick="apagarSelecionados()" class="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded flex items-center space-x-2 transition">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+        </svg>
+        <span>Apagar Selecionados</span>
+      </button>
+    </div>
+
+    <ul id="lista-cupons" class="space-y-3"></ul>
+  </main>
+  <%- include('partials/whatsapp') %>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    let nomesCupons = [];
+
+    async function carregarCupons() {
+      const res = await fetch('/cupons');
+      const data = await res.json();
+      const lista = document.getElementById('lista-cupons');
+      lista.innerHTML = '';
+      nomesCupons = data.arquivos;
+
+      if (!data.arquivos.length) {
+        lista.innerHTML = '<li class="text-gray-500 text-center">Nenhum cupom encontrado.</li>';
+        return;
+      }
+
+      data.arquivos.forEach(nome => {
+        const li = document.createElement('li');
+        li.className = 'bg-white p-4 rounded-lg shadow flex justify-between items-center transition hover:shadow-md';
+
+        li.innerHTML = `
+          <div class="flex items-center gap-3">
+            <input type="checkbox" class="check-cupom accent-blue-500" value="${nome}">
+            <span class="truncate max-w-[200px] sm:max-w-xs font-mono text-sm">${nome}</span>
+          </div>
+          <button onclick="apagarCupom('${nome}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition">
+            Apagar
+          </button>
+        `;
+
+        lista.appendChild(li);
+      });
+    }
+
+    function toggleTodos(checkbox) {
+      document.querySelectorAll('.check-cupom').forEach(chk => {
+        chk.checked = checkbox.checked;
+      });
+    }
+
+    async function apagarCupom(nome) {
+      if (!confirm(`Deseja apagar o cupom "${nome}"?`)) return;
+
+      const res = await fetch(`/cupons/${encodeURIComponent(nome)}`, {
+        method: 'DELETE'
+      });
+
+      const data = await res.json();
+      if (data.status === 'ok') {
+        carregarCupons();
+      } else {
+        alert('Erro ao apagar: ' + data.mensagem);
+      }
+    }
+
+    async function apagarSelecionados() {
+      const selecionados = Array.from(document.querySelectorAll('.check-cupom:checked'))
+        .map(chk => chk.value);
+
+      if (!selecionados.length) {
+        alert('Nenhum cupom selecionado.');
+        return;
+      }
+
+      if (!confirm(`Deseja apagar ${selecionados.length} cupons?`)) return;
+
+      for (const nome of selecionados) {
+        await fetch(`/cupons/${encodeURIComponent(nome)}`, {
+          method: 'DELETE'
+        });
+      }
+
+      carregarCupons();
+    }
+
+    carregarCupons();
+  </script>
+</body>
+</html>

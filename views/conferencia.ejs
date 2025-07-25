@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            gray: {
+              850: '#1f1f1f' 
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <title>Princesa Reborn - Conferência</title>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-850 text-gray-900 dark:text-gray-100 flex flex-col min-h-screen font-sans transition-colors duration-300">
+
+  <%- include('partials/header') %>
+
+  <main class="flex-grow flex justify-center items-start px-4 py-10">
+    <section class="bg-white dark:bg-gray-800/90 dark:backdrop-blur-sm dark:ring-1 dark:ring-white/10 shadow-lg rounded-xl max-w-3xl w-full p-8 transition-colors duration-300">
+
+      <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-8 text-center">
+        Conferência de Estoque
+      </h1>
+
+      <div class="space-y-6">
+
+        <!-- Campo de SKU -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+          <label for="inputSKU" class="block text-gray-700 dark:text-gray-300 font-semibold mb-1 sm:mb-0 w-full sm:w-auto">
+            Contagem Manual:
+          </label>
+          <input
+            type="text"
+            id="inputSKU"
+            placeholder="Escaneie com o bipador"
+            autofocus
+            class="flex-grow border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+          />
+        </div>
+
+        <!-- Campo de Contador -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+          <label for="contadorInput" class="block text-gray-700 dark:text-gray-300 font-semibold mb-1 sm:mb-0 w-full sm:w-auto">
+            Quem contou:
+          </label>
+          <input
+            type="text"
+            id="contadorInput"
+            placeholder="Nome de quem conferiu"
+            class="flex-grow border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+          />
+        </div>
+
+        <!-- Mensagem -->
+        <div id="mensagem" class="text-center text-gray-600 dark:text-gray-300 font-medium">
+          Aguardando contagem...
+        </div>
+
+        <!-- Resumo -->
+        <div id="resumo" class="mt-4 max-h-48 overflow-y-auto text-left text-gray-700 dark:text-gray-200 font-medium">
+        </div>
+
+        <!-- Botão Finalizar -->
+        <button
+          onclick="finalizarConferencia()"
+          class="mt-8 w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400 text-white font-semibold py-3 rounded-md shadow transition duration-200"
+        >
+          📤 Finalizar Conferência
+        </button>
+
+      </div>
+    </section>
+  </main>
+  <%- include('partials/whatsapp') %>
+
+  <%- include('partials/footer') %>
+
+  <!-- Script funcional -->
+  <script>
+    let quiosqueAtual = "";
+    let estoqueEsperado = {};
+    let contagemAtual = {};
+    let skusValidos = new Set();
+
+    document.getElementById("inputSKU").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+
+        const sku = e.target.value.trim().toLowerCase();
+
+        if (!sku) {
+          document.getElementById("mensagem").innerText = "SKU inválido.";
+          return;
+        }
+
+        if (!skusValidos.has(sku)) {
+          document.getElementById("mensagem").innerText = `❌ SKU "${sku}" não está na tabela de preços.`;
+          e.target.value = "";
+          return;
+        }
+
+        contagemAtual[sku] = (contagemAtual[sku] || 0) + 1;
+        e.target.value = "";
+        atualizarResumo();
+        document.getElementById("mensagem").innerText = `✅ SKU "${sku}" registrado (+1)`;
+        document.getElementById("inputSKU").focus();
+      }
+    });
+
+    function atualizarResumo() {
+      const resumo = document.getElementById("resumo");
+      const skusBipados = Object.keys(contagemAtual);
+
+      if (skusBipados.length === 0) {
+        resumo.innerHTML = "<p>Nenhum SKU bipado ainda.</p>";
+        return;
+      }
+
+      let html = "<h3 class='text-lg font-semibold mb-2'>Status da Conferência:</h3><ul class='list-disc list-inside space-y-1'>";
+      skusBipados.forEach(sku => {
+        const contado = contagemAtual[sku] || 0;
+        html += `<li><strong>${sku}</strong>: ${contado}</li>`;
+      });
+      html += "</ul>";
+      resumo.innerHTML = html;
+    }
+
+    async function finalizarConferencia() {
+      const contador = document.getElementById("contadorInput").value.trim();
+      if (!quiosqueAtual || !contador) {
+        alert("Preencha o nome do contador.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/conferencia', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quiosque_id: quiosqueAtual,
+            contador,
+            contagem: contagemAtual
+          })
+        });
+
+        const data = await res.json();
+        alert(data.mensagem || "Conferência registrada com sucesso.");
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao finalizar conferência.");
+      }
+    }
+
+    window.onload = async () => {
+      try {
+        const userRes = await fetch('/session-user');
+        const user = await userRes.json();
+        if (!user || !user.username) {
+          alert("Sessão expirada. Faça login novamente.");
+          return window.location.href = "/login";
+        }
+
+        quiosqueAtual = user.quiosque_id;
+
+        const estoqueRes = await fetch('/api/estoque');
+        const dados = await estoqueRes.json();
+        estoqueEsperado = {};
+        dados.skus.forEach(item => {
+          estoqueEsperado[item.sku.toLowerCase()] = Math.abs(item.quantidade);
+        });
+
+        const precosRes = await fetch('/api/precos');
+        const precosDados = await precosRes.json();
+        skusValidos = new Set(precosDados.map(p => p.sku.toLowerCase()));
+
+        atualizarResumo();
+      } catch (err) {
+        console.error("Erro ao carregar dados:", err);
+        alert("Erro ao carregar conferência.");
+      }
+    };
+  </script>
+
+  <!-- Script do botão dark -->
+  <script src="/js/darkmode.js"></script>
+
+</body>
+</html>

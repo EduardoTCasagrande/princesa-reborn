@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            lightbg: '#f9fafb',
+            darkbg: '#1f2937',
+            lighttext: '#111827',
+            darktext: '#f3f4f6',
+            primary: '#2563eb',
+            danger: '#dc2626',
+          }
+        }
+      }
+    }
+  </script>
+  <title>Princesa Reborn - Sangria</title>
+</head>
+<body class="bg-lightbg dark:bg-darkbg text-lighttext dark:text-darktext flex flex-col min-h-screen font-sans transition-colors duration-300">
+  <%- include('partials/header') %>
+
+  <main class="flex-grow container mx-auto p-6">
+    <div class="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
+
+      <!-- Box do formulário -->
+      <div class="bg-white dark:bg-gray-800 rounded shadow p-6 flex-1">
+        <h2 class="text-xl font-semibold mb-4">Registrar Sangria</h2>
+
+        <% if (user.admin == true) { %>
+          <div id="seletorAdmin" class="mb-4">
+            <label for="quiosqueSelect" class="block font-medium mb-1">Selecionar Quiosque:</label>
+            <select id="quiosqueSelect" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2"></select>
+          </div>
+        <% } %>
+
+        <form id="formSangria" class="space-y-4">
+          <div>
+            <label class="block font-medium mb-1">Valor da sangria:</label>
+            <input type="number" step="0.01" name="valor" required class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2" />
+          </div>
+
+          <div>
+            <label class="block font-medium mb-1">Motivo (opcional):</label>
+            <textarea name="motivo" rows="3" class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2"></textarea>
+          </div>
+
+          <button type="submit" class="w-full bg-danger text-white py-2 rounded hover:bg-red-700 transition">
+            Registrar
+          </button>
+        </form>
+
+        <div id="resultado" class="mt-4 text-center font-medium"></div>
+      </div>
+
+      <!-- Box do histórico -->
+      <div class="bg-white dark:bg-gray-800 rounded shadow p-6 flex-1 overflow-auto max-h-[500px]">
+        <div id="historicoCaixa" class="mb-6">
+          <!-- Histórico será carregado aqui -->
+        </div>
+
+        <hr class="my-4 border-gray-300 dark:border-gray-600" />
+
+        <h3 class="text-lg font-semibold mb-3">Relatório do Dia</h3>
+        <button id="gerarRelatorio" class="w-full bg-primary text-white py-2 rounded hover:bg-blue-700 transition mb-4">
+          Gerar Relatório do Dia
+        </button>
+        <div id="linkRelatorio" class="text-center font-medium"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <%- include('partials/whatsapp') %>
+  <%- include('partials/footer') %>
+
+  <script>
+    async function enviarSangria(quiosque, valor, motivo) {
+      const resposta = await fetch('/api/sangria', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quiosque, valor, motivo })
+      });
+      return resposta.ok;
+    }
+
+    document.getElementById('formSangria').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const valor = parseFloat(form.valor.value);
+      const motivo = form.motivo.value;
+
+      try {
+        let quiosque;
+
+        <% if (user.admin == true) { %>
+          quiosque = document.getElementById('quiosqueSelect').value;
+        <% } else { %>
+          const resUser = await fetch('/meu-quiosque', { credentials: 'same-origin' });
+          const dataUser = await resUser.json();
+          quiosque = dataUser.quiosque;
+        <% } %>
+
+        const sucesso = await enviarSangria(quiosque, valor, motivo);
+
+        if (sucesso) {
+          document.getElementById('resultado').innerText = 'Sangria registrada com sucesso!';
+          form.reset();
+          <% if (user.admin == true) { %>
+            carregarHistoricoAdmin();
+          <% } else { %>
+            carregarHistorico();
+          <% } %>
+        } else {
+          document.getElementById('resultado').innerText = 'Erro ao registrar sangria.';
+        }
+
+      } catch (error) {
+        console.error('Erro ao enviar sangria:', error);
+        document.getElementById('resultado').innerText = 'Erro ao registrar sangria.';
+      }
+    });
+
+    <% if (user.admin == true) { %>
+
+    async function carregarQuiosques() {
+      try {
+        const resposta = await fetch('/api/quiosques');
+        const data = await resposta.json();
+
+        const select = document.getElementById('quiosqueSelect');
+        select.innerHTML = '';
+
+        data.quiosques.forEach(q => {
+          const option = document.createElement('option');
+          option.value = q.id;               // <- usa apenas o ID numérico
+          option.textContent = q.nome;       // <- mostra o nome do quiosque na lista
+          select.appendChild(option);
+        });
+
+
+        select.addEventListener('change', carregarHistoricoAdmin);
+
+        if (data.quiosques.length > 0) {
+          carregarHistoricoAdmin();
+        }
+      } catch (error) {
+        console.error('Erro ao carregar quiosques:', error);
+      }
+    }
+
+    async function carregarHistoricoAdmin() {
+      const quiosqueSelecionado = document.getElementById('quiosqueSelect').value;
+
+      try {
+        const resposta = await fetch(`/api/caixa/historico/${encodeURIComponent(quiosqueSelecionado)}`);
+        const historico = await resposta.json();
+
+        const container = document.getElementById('historicoCaixa');
+        container.innerHTML = '<h3 class="text-lg font-semibold mb-4">Histórico do Caixa</h3>';
+
+        if (historico.length === 0) {
+          container.innerHTML += '<p>Nenhuma transação encontrada.</p>';
+          return;
+        }
+
+        historico.forEach(item => {
+          const tipo = item.forma_pagamento;
+          const valor = Number(item.valor).toFixed(2).replace('.', ',');
+          const data = item.data;
+
+          container.innerHTML += `<p><strong>${tipo}</strong>: R$ ${valor} - ${data}</p>`;
+        });
+      } catch (e) {
+        console.error('Erro ao carregar histórico:', e);
+        document.getElementById('historicoCaixa').innerText = 'Erro ao carregar histórico.';
+      }
+    }
+
+    window.onload = carregarQuiosques;
+
+    <% } else { %>
+
+    async function carregarHistorico() {
+      try {
+        const resUser = await fetch('/meu-quiosque', { credentials: 'same-origin' });
+        const dataUser = await resUser.json();
+
+        const resposta = await fetch(`/api/caixa/historico/${encodeURIComponent(dataUser.quiosque)}`);
+        const historico = await resposta.json();
+
+        const container = document.getElementById('historicoCaixa');
+        container.innerHTML = '<h3 class="text-lg font-semibold mb-4">Histórico do Caixa</h3>';
+
+        if (historico.length === 0) {
+          container.innerHTML += '<p>Nenhuma transação encontrada.</p>';
+          return;
+        }
+
+        historico.forEach(item => {
+          const tipo = item.forma_pagamento;
+          const valor = Number(item.valor).toFixed(2).replace('.', ',');
+          const data = item.data;
+
+          container.innerHTML += `<p><strong>${tipo}</strong>: R$ ${valor} - ${data}</p>`;
+        });
+      } catch (e) {
+        console.error('Erro ao carregar histórico:', e);
+        document.getElementById('historicoCaixa').innerText = 'Erro ao carregar histórico.';
+      }
+    }
+
+    window.onload = carregarHistorico;
+
+    <% } %>
+
+    document.getElementById('gerarRelatorio').addEventListener('click', async () => {
+      let quiosque;
+
+      <% if (user.admin == true) { %>
+        quiosque = document.getElementById('quiosqueSelect').value;
+      <% } else { %>
+        const resUser = await fetch('/meu-quiosque', { credentials: 'same-origin' });
+        const dataUser = await resUser.json();
+        quiosque = dataUser.quiosque;
+      <% } %>
+
+      const linkDiv = document.getElementById('linkRelatorio');
+      linkDiv.innerText = '';
+
+      try {
+        const res = await fetch(`/api/caixa/relatorio/${encodeURIComponent(quiosque)}`);
+        const data = await res.json();
+
+        if (data.url) {
+          linkDiv.innerHTML = `<p>✅ Relatório gerado</p>`;
+          window.open(data.url, '_blank');
+
+
+          const fecharRes = await fetch('/api/caixa/fechar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quiosque }),
+          });
+
+          const fecharData = await fecharRes.json();
+
+          if (fecharRes.ok) {
+            linkDiv.innerHTML += `<p class="text-green-600">✅ Caixa fechado com sucesso.</p>`;
+          } else {
+            linkDiv.innerHTML += `<p class="text-red-600">Erro ao fechar caixa: ${fecharData.erro || 'Erro desconhecido'}</p>`;
+          }
+        } else {
+          linkDiv.innerText = data.erro || 'Erro ao gerar relatório.';
+        }
+      } catch (error) {
+        console.error('Erro ao gerar relatório e fechar caixa:', error);
+        linkDiv.innerText = 'Erro ao gerar relatório ou fechar caixa.';
+      }
+    });
+  </script>
+  <script src="/js/darkmode.js"></script>
+
+</body>
+</html>

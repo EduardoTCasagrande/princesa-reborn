@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <title>Princesa Reborn - Quiosques</title>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col min-h-screen font-sans transition-colors duration-300">
+
+  <%- include('partials/header') %>
+
+  <main class="max-w-3xl mx-auto p-6">
+    <section class="mb-10">
+      <h1 class="text-3xl font-bold mb-6">Gerenciador de Quiosques</h1>
+
+      <h2 class="text-xl font-semibold mb-4">Cadastro de Novo Quiosque</h2>
+      <form id="ajustar" method="POST" action="/add" class="bg-white dark:bg-gray-800 p-6 rounded-md shadow-md space-y-4">
+        <label class="block">
+          <span class="block font-medium mb-1">Nome:</span>
+          <input
+            type="text"
+            name="nome"
+            required
+            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </label>
+
+        <label class="block">
+          <span class="block font-medium mb-1">Range (ex: B3:C43):</span>
+          <input
+            type="text"
+            name="range"
+            required
+            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </label>
+
+        <label class="block">
+          <span class="block font-medium mb-1">Colunas (ex: B,C):</span>
+          <input
+            type="text"
+            name="colunas"
+            required
+            class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </label>
+
+        <button
+          type="submit"
+          class="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700 transition-colors font-semibold"
+        >
+          Cadastrar
+        </button>
+      </form>
+    </section>
+
+    <section class="bg-white dark:bg-gray-800 p-6 rounded-md shadow-md">
+      <h2 class="text-xl font-semibold mb-4">Lista de Quiosques</h2>
+      <ul id="lista-quiosques" class="list-disc list-inside space-y-1 text-gray-700 dark:text-gray-300"></ul>
+    </section>
+  </main>
+
+  <%- include('partials/whatsapp') %>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    async function carregarQuiosques() {
+      try {
+        const resposta = await fetch('/quiosques');
+        const data = await resposta.json();
+        const quiosques = data.quiosques;
+
+        const lista = document.getElementById('lista-quiosques');
+        lista.innerHTML = '';
+
+        if (!quiosques || quiosques.length === 0) {
+          lista.innerHTML = '<li>Nenhum quiosque cadastrado.</li>';
+        } else {
+          quiosques.forEach(nome => {
+            const li = document.createElement('li');
+            li.textContent = nome;
+            lista.appendChild(li);
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao carregar quiosques:', error);
+      }
+    }
+
+    window.onload = carregarQuiosques;
+  </script>
+  <script src="/js/darkmode.js"></script>
+
+</body>
+</html>

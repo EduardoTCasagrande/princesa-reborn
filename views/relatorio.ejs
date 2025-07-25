@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <title>Princesa Reborn - Relatório</title>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col min-h-screen font-sans transition-colors duration-300">
+
+  <%- include('partials/header') %>
+
+  <main class="flex-grow container mx-auto p-6">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded shadow-md max-w-4xl mx-auto">
+      <h1 class="text-3xl font-semibold mb-6">Gerenciador de Relatórios</h1>
+
+      <label for="tipo-select" class="block mb-2 font-medium">Selecione o tipo de relatório:</label>
+      <select
+        id="tipo-select"
+        class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 mb-6 w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <% const tipos = ['reposicao', 'fechamento', 'conferencia']; %>
+        <% tipos.forEach(tipo => { %>
+          <option value="<%= tipo %>"><%= tipo.charAt(0).toUpperCase() + tipo.slice(1) %></option>
+        <% }) %>
+      </select>
+
+      <ul id="lista" class="mb-6 space-y-2"></ul>
+
+      <pre
+        id="conteudo"
+        class="whitespace-pre-wrap border border-gray-300 dark:border-gray-600 rounded p-4 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 min-h-[150px] overflow-auto"
+      ></pre>
+    </div>
+  </main>
+
+
+  <%- include('partials/whatsapp') %>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    const tipos = ['reposicao', 'fechamento', 'conferencia'];
+    const tipoSelect = document.getElementById('tipo-select');
+    const listaEl = document.getElementById('lista');
+    const conteudoEl = document.getElementById('conteudo');
+
+    async function carregarListaTipo(tipo) {
+      try {
+        const res = await fetch(`/relatorios/listar/${tipo}`);
+        const arquivos = await res.json();
+
+        listaEl.innerHTML = '';
+        conteudoEl.textContent = '';
+
+        arquivos.forEach(nome => {
+          const li = document.createElement('li');
+          li.className = 'flex items-center justify-between bg-gray-100 dark:bg-gray-700 rounded px-3 py-2';
+
+          const nomeSpan = document.createElement('span');
+          nomeSpan.textContent = nome;
+
+          const botoesDiv = document.createElement('div');
+          botoesDiv.className = 'space-x-2';
+
+          const btnLer = document.createElement('button');
+          btnLer.textContent = 'Ler';
+          btnLer.className = 'bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition';
+          btnLer.onclick = async () => {
+            const res = await fetch(`/relatorios/ler/${tipo}/${nome}`);
+            const data = await res.json();
+            conteudoEl.textContent = data.conteudo || 'Nenhum conteúdo.';
+          };
+
+          const btnExcluir = document.createElement('button');
+          btnExcluir.textContent = 'Excluir';
+          btnExcluir.className = 'bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition';
+          btnExcluir.onclick = async () => {
+            if (confirm(`Excluir o arquivo ${nome}?`)) {
+              const response = await fetch(`/relatorios/excluir/${tipo}/${nome}`, { method: 'DELETE' });
+              if (response.ok) {
+                carregarListaTipo(tipo);
+                conteudoEl.textContent = '';
+                alert('Arquivo excluído com sucesso.');
+              } else {
+                const data = await response.json();
+                alert('Erro ao excluir arquivo: ' + data.mensagem);
+              }
+            }
+          };
+
+          const btnBaixar = document.createElement('a');
+          btnBaixar.textContent = 'Baixar';
+          btnBaixar.href = `/relatorios/ler/${tipo}/${nome}?raw=true`;
+          btnBaixar.download = nome;
+          btnBaixar.className = 'bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition no-underline';
+
+          botoesDiv.appendChild(btnLer);
+          botoesDiv.appendChild(btnExcluir);
+          botoesDiv.appendChild(btnBaixar);
+
+          li.appendChild(nomeSpan);
+          li.appendChild(botoesDiv);
+          listaEl.appendChild(li);
+        });
+      } catch (err) {
+        console.error(`Erro ao carregar lista de ${tipo}:`, err);
+        listaEl.innerHTML = '<li class="text-red-600">Erro ao carregar os arquivos.</li>';
+      }
+    }
+
+    carregarListaTipo(tipoSelect.value);
+
+    tipoSelect.addEventListener('change', () => {
+      carregarListaTipo(tipoSelect.value);
+    });
+  </script>
+
+  <script src="/js/darkmode.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Certificados</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+</head>
+<body class="min-h-screen flex flex-col p-0 bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+  <%- include('partials/header') %>
+
+  <main class="flex-grow w-full max-w-4xl mx-auto p-6 space-y-10 bg-gray-50 dark:bg-gray-900 transition-colors duration-300 rounded-xl mt-8">
+    <section class="flex flex-col space-y-6">
+      <h1 class="text-4xl font-extrabold text-gray-800 dark:text-gray-100 mt-6">📜 Certificados</h1>
+
+      <ul class="w-full grid gap-6">
+        <% certificates.forEach(cert => { %>
+          <li class="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-xl transition duration-300">
+            <p class="text-lg text-gray-600 dark:text-gray-300">
+              <span class="font-semibold">Nome da Conta:</span>
+              <span class="text-gray-900 dark:text-white"><%= cert.subject.split(',')[0].replace('CN=', '') %></span>
+            </p>
+            <p class="text-lg text-gray-600 dark:text-gray-300">
+              <span class="font-semibold">Validade:</span>
+              <span class="text-gray-900 dark:text-white"><%= new Date(cert.validUntil).toLocaleDateString() %></span>
+            </p>
+            <p class="text-lg">
+              <span class="font-semibold text-gray-600 dark:text-gray-300">Status:</span>
+              <% if(cert.status.toLowerCase() === 'active' || cert.status.toLowerCase() === 'Active') { %>
+                <span class="text-green-600 font-bold"><%= cert.status %></span>
+              <% } else { %>
+                <span class="text-red-600 font-bold"><%= cert.status %></span>
+              <% } %>
+            </p>
+          </li>
+        <% }) %>
+      </ul>
+    </section>
+  </main>
+
+  <%- include('partials/footer') %>
+
+  <script src="/js/darkmode.js"></script>
+</body>
+</html>

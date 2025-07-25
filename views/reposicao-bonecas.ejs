@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Separar Reposição</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' }
+  </script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
+  <%- include('partials/header') %>
+
+  <div class="max-w-7xl mx-auto p-4 md:p-8 grid md:grid-cols-2 gap-8">
+    <!-- FORMULÁRIO DE REPOSIÇÃO -->
+    <div id="formularioReposicao" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 rounded-2xl shadow-md">
+      <h1 class="text-3xl font-bold mb-6 flex items-center gap-2">🧸 Separar Bonecas para Reposição</h1>
+
+      <form id="formReposicao" class="space-y-6">
+        <!-- QUIOSQUE -->
+        <div>
+          <label for="quiosque" class="block text-sm font-medium mb-1">Selecionar Quiosque</label>
+          <select id="quiosque" name="quiosque"
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required>
+            <% quiosques.forEach(q => { %>
+              <option value="<%= q.nome %>"><%= q.nome %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <!-- LISTA DE SKUS -->
+        <div id="listaSkus" class="space-y-3 border-t pt-4 mt-4"></div>
+
+        <!-- AUTOCOMPLETE -->
+        <datalist id="lista-skus">
+          <% skusDisponiveis.forEach(sku => { %>
+            <option value="<%= sku %>">
+          <% }) %>
+        </datalist>
+
+        <!-- RESUMO -->
+        <div id="resumo" class="text-sm text-gray-600 dark:text-gray-300 border-t border-gray-200 dark:border-gray-700 pt-3 mt-4 font-mono"></div>
+
+        <!-- BOTÕES -->
+        <div class="flex flex-wrap justify-between items-center gap-4 mt-4">
+          <button type="button" onclick="duplicarUltimaLinha()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow">
+            + Adicionar Boneca
+          </button>
+          <button type="button" onclick="resetarCampos()" class="text-sm text-red-500 underline">
+            Limpar tudo
+          </button>
+        </div>
+
+        <!-- ENVIAR -->
+        <div class="pt-6">
+          <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl text-lg font-semibold shadow-lg transition duration-200">
+            ✅ Salvar Reposição
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ESTOQUE ATUAL -->
+    <div id="estoqueAtual" class="bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-500 p-6 rounded-2xl shadow-md">
+      <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">📦 Estoque Atual do Quiosque</h2>
+      <div id="listaEstoque" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm font-mono">
+        Selecione um quiosque...
+      </div>
+    </div>
+  </div>
+
+  <%- include('partials/whatsapp') %>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const lista = document.getElementById('listaSkus');
+      lista.innerHTML = '';
+      for (let i = 0; i < 40; i++) {
+        const linha = document.createElement('div');
+        linha.className = 'flex items-center gap-2';
+        linha.innerHTML = `
+          <input list="lista-skus" name="sku[]" placeholder="SKU da boneca"
+            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded focus:ring-2 focus:ring-blue-400" />
+          <input type="number" name="quantidade[]" placeholder="Qtd" min="1"
+            class="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-center text-gray-900 dark:text-gray-100 rounded focus:ring-2 focus:ring-blue-400" />
+          <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700 text-xl font-bold">×</button>
+        `;
+        lista.appendChild(linha);
+      }
+
+      const quiosqueInicial = document.getElementById('quiosque').value;
+      if (quiosqueInicial) carregarEstoque(quiosqueInicial);
+    });
+
+    function duplicarUltimaLinha() {
+      const lista = document.getElementById('listaSkus');
+      const ultima = lista.lastElementChild;
+      const nova = ultima.cloneNode(true);
+      nova.querySelectorAll('input').forEach(input => input.value = '');
+      lista.appendChild(nova);
+    }
+
+    function resetarCampos() {
+      document.getElementById('listaSkus').innerHTML = '';
+      document.getElementById('resumo').innerHTML = '';
+    }
+
+    function atualizarResumo() {
+      const skus = Array.from(document.querySelectorAll('input[name="sku[]"]')).map(i => i.value.trim());
+      const qtds = Array.from(document.querySelectorAll('input[name="quantidade[]"]')).map(i => parseInt(i.value) || 0);
+      const resumo = {};
+      skus.forEach((sku, i) => {
+        if (!sku) return;
+        resumo[sku] = (resumo[sku] || 0) + qtds[i];
+      });
+      let texto = Object.entries(resumo).map(([sku, qtd]) => `${sku}: ${qtd} un.`).join('<br>');
+      document.getElementById('resumo').innerHTML = texto;
+    }
+
+    document.getElementById('formReposicao').addEventListener('input', atualizarResumo);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+        e.preventDefault();
+        const inputs = Array.from(document.querySelectorAll('input'));
+        const index = inputs.indexOf(e.target);
+        if (inputs[index + 1]) inputs[index + 1].focus();
+      }
+    });
+
+    document.getElementById('formReposicao').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const quiosque = form.quiosque.value;
+      const skus = Array.from(form.querySelectorAll('input[name="sku[]"]')).map(input => input.value.trim());
+      const quantidades = Array.from(form.querySelectorAll('input[name="quantidade[]"]')).map(input => Number(input.value));
+      const dados = {};
+      skus.forEach((sku, i) => {
+        if (sku) dados[sku] = quantidades[i];
+      });
+
+      const res = await fetch('/reposicao/nova', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quiosque, dados })
+      });
+
+      const json = await res.json();
+      alert(json.mensagem || 'Reposição enviada');
+      if (json.status === 'ok') window.location.reload();
+    });
+
+    async function carregarEstoque(quiosqueNome) {
+      const lista = document.getElementById('listaEstoque');
+      lista.innerHTML = 'Carregando...';
+
+      try {
+        const res = await fetch(`/reposicao/estoque/${encodeURIComponent(quiosqueNome)}`);
+        const json = await res.json();
+
+        if (!json.estoque) throw new Error('Estoque não encontrado.');
+
+        const entries = Object.entries(json.estoque);
+        if (entries.length === 0) {
+          lista.innerHTML = 'Sem dados de estoque.';
+          return;
+        }
+
+        entries.sort((a, b) => a[1] - b[1]);
+
+        lista.innerHTML = entries.map(([sku, qtd]) => {
+          let bg = qtd <= 1
+            ? 'bg-red-100 dark:bg-red-900 border-red-400 dark:border-red-600 text-red-800 dark:text-red-300'
+            : qtd === 2
+            ? 'bg-yellow-100 dark:bg-yellow-900 border-yellow-400 dark:border-yellow-600 text-yellow-800 dark:text-yellow-200'
+            : 'bg-green-100 dark:bg-green-900 border-green-400 dark:border-green-600 text-green-800 dark:text-green-200';
+
+          return `<div class="rounded-lg px-4 py-3 border shadow-sm font-mono ${bg}">
+            <div class="text-sm font-semibold">${sku}</div>
+            <div class="text-lg font-bold">${qtd} un.</div>
+          </div>`;
+        }).join('');
+
+      } catch (err) {
+        console.error(err);
+        lista.innerHTML = 'Erro ao carregar estoque.';
+      }
+    }
+
+    document.getElementById('quiosque').addEventListener('change', (e) => {
+      carregarEstoque(e.target.value);
+    });
+  </script>
+
+  <script src="/js/darkmode.js"></script>
+</body>
+</html>

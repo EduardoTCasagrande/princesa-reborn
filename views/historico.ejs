@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <title>Princesa Reborn - Histórico</title>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col min-h-screen font-sans transition-colors duration-300">
+  
+  <%- include('partials/header') %>
+
+<main class="max-w-6xl mx-auto p-6">
+  <h1 class="text-4xl font-bold mb-6 text-gray-800 dark:text-gray-100 transition-colors duration-300">Histórico de Vendas</h1>
+
+  <form id="filtroForm" class="flex flex-col sm:flex-row items-center gap-4 mb-6 bg-white dark:bg-gray-800 p-4 rounded shadow transition-colors duration-300">
+    <label class="flex flex-col text-gray-700 dark:text-gray-300 transition-colors duration-300">
+      Data Início:
+      <input type="date" id="data_inicio" name="data_inicio" required
+        class="mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors duration-300" />
+    </label>
+
+    <label class="flex flex-col text-gray-700 dark:text-gray-300 transition-colors duration-300">
+      Data Fim:
+      <input type="date" id="data_fim" name="data_fim" required
+        class="mt-1 p-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors duration-300" />
+    </label>
+
+    <input type="hidden" id="quiosque" name="quiosque" />
+
+    <button type="submit"
+      class="mt-4 sm:mt-0 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded transition-colors duration-300">
+      Buscar
+    </button>
+
+    <button id="copiarResultado"
+      class="mt-4 sm:mt-0 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded transition-colors duration-300 hidden">
+      Copiar Resultado
+    </button>
+  </form>
+
+  <div class="overflow-x-auto rounded shadow">
+    <table id="resultadoTable" class="min-w-full bg-white dark:bg-gray-800 rounded transition-colors duration-300" style="display:none;">
+      <thead class="bg-blue-600 dark:bg-blue-700 text-white">
+        <tr>
+          <th class="py-2 px-4 text-left">ID</th>
+          <th class="py-2 px-4 text-left">Data</th>
+          <th class="py-2 px-4 text-left">Quiosque</th>
+          <th class="py-2 px-4 text-left">SKU</th>
+          <th class="py-2 px-4 text-left">Quantidade</th>
+          <th class="py-2 px-4 text-left">Valor (R$)</th>
+          <th class="py-2 px-4 text-left">Operador</th>
+          <th class="py-2 px-4 text-left">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700 text-gray-900 dark:text-gray-100 transition-colors duration-300"></tbody>
+    </table>
+  </div>
+</main>
+
+<%- include('partials/whatsapp') %>
+<%- include('partials/footer') %>
+
+<!-- Modal de Emissão de Nota -->
+<div id="modalNota" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-lg w-full max-w-md">
+    <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Dados do Cliente</h2>
+    
+    <label class="block mb-2 text-gray-700 dark:text-gray-300">
+      Nome:
+      <input id="nomeCliente" type="text" class="mt-1 w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+    </label>
+    
+    <label class="block mb-4 text-gray-700 dark:text-gray-300">
+      CPF:
+      <input id="cpfCliente" type="text" maxlength="14" class="mt-1 w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+    </label>
+
+    <div class="flex justify-end gap-2">
+      <button onclick="fecharModalNota()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">Cancelar</button>
+      <button id="confirmarNotaBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Emitir Nota</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let admin = false;
+  let quiosqueAtual = '';
+
+  fetch('/usuario-logado')
+    .then(response => response.json())
+    .then(data => {
+      if (data.admin) {
+        admin = true;
+      } else if (data.quiosque) {
+        quiosqueAtual = data.quiosque;
+        document.getElementById('quiosque').value = quiosqueAtual;
+      } else {
+        alert('Usuário sem quiosque definido.');
+      }
+    });
+
+  document.getElementById('filtroForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const data_inicio = document.getElementById('data_inicio').value;
+    const data_fim = document.getElementById('data_fim').value;
+    const quiosque = document.getElementById('quiosque').value;
+
+    let url = `/historico-vendas?data_inicio=${data_inicio}&data_fim=${data_fim}`;
+    if (!admin) {
+      url += `&quiosque_id=${encodeURIComponent(quiosque)}`;
+    }
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        const table = document.getElementById('resultadoTable');
+        const tbody = table.querySelector('tbody');
+        tbody.innerHTML = '';
+        document.getElementById('copiarResultado').classList.add('hidden');
+
+        if (data.status === 'ok' && data.historico.length > 0) {
+          data.historico.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.classList.add('hover:bg-gray-100');
+            tr.innerHTML = `
+              <td class="py-2 px-4">${item.id_venda}</td>
+              <td class="py-2 px-4">${formatarDataHora(item.data)}</td>
+              <td class="py-2 px-4">${item.quiosque_nome}</td>
+              <td class="py-2 px-4">${item.sku}</td>
+              <td class="py-2 px-4">${item.quantidade}</td>
+              <td class="py-2 px-4">${item.valor.toFixed(2).replace('.', ',')}</td>
+              <td class="py-2 px-4">${item.operador}</td>
+              <td class="py-2 px-4">
+                <button onclick="reimprimirCupom(${item.id_venda}, ${item.quiosque_id})" title="Imprimir Cupom" class="text-blue-600 hover:text-blue-800">🖨️</button>
+                <button onclick="emitirNota(${item.id_venda}, ${item.quiosque_id})" title="Emitir NFC-e" class="text-green-600 hover:text-green-800 ml-2">🧾</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+
+          table.style.display = 'table';
+          document.getElementById('copiarResultado').classList.remove('hidden');
+
+          document.getElementById('copiarResultado').onclick = () => {
+            const linhas = data.historico.map(item => {
+              return [
+                item.id_venda,
+                formatarDataHora(item.data),
+                item.quiosque_nome,
+                item.sku,
+                item.quantidade,
+                item.valor.toFixed(2).replace('.', ','),
+                item.operador
+              ].join('\t');
+            });
+
+            const cabecalho = ['ID', 'Data', 'Quiosque', 'SKU', 'Quantidade', 'Valor (R$)', 'Operador'].join('\t');
+            const textoFinal = [cabecalho, ...linhas].join('\n');
+
+            navigator.clipboard.writeText(textoFinal)
+              .then(() => alert('Resultado copiado com sucesso!'))
+              .catch(err => alert('Erro ao copiar resultado.'));
+          };
+
+        } else {
+          table.style.display = 'none';
+          alert('Nenhuma venda encontrada para o período.');
+        }
+      });
+  });
+
+  function reimprimirCupom(idVenda, quiosqueId) {
+    fetch(`/reimprimir-cupom?id_venda=${idVenda}&quiosque_id=${quiosqueId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok' && data.cupomUrl) {
+          window.open(data.cupomUrl, '_blank');
+        } else {
+          alert('Erro ao gerar cupom.');
+        }
+      });
+  }
+
+  function formatarDataHora(dataISO) {
+    const data = new Date(dataISO);
+    const dia = data.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const hora = data.toLocaleTimeString('pt-BR', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    return `${dia} às ${hora}`;
+  }
+
+  let vendaSelecionada = null;
+
+  function emitirNota(idVenda, quiosqueId) {
+    vendaSelecionada = { idVenda, quiosqueId };
+    document.getElementById('nomeCliente').value = '';
+    document.getElementById('cpfCliente').value = '';
+    document.getElementById('modalNota').classList.remove('hidden');
+  }
+
+  function fecharModalNota() {
+    document.getElementById('modalNota').classList.add('hidden');
+  }
+
+  document.getElementById('confirmarNotaBtn').addEventListener('click', () => {
+    const nome = document.getElementById('nomeCliente').value.trim();
+    const cpf = document.getElementById('cpfCliente').value.trim();
+
+
+
+    fetch('/emitir-nota', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id_venda: vendaSelecionada.idVenda,
+        quiosque_id: vendaSelecionada.quiosqueId,
+        cliente: { nome, cpf }
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        fecharModalNota();
+        if (data.status === 'ok') {
+          alert('Nota emitida com sucesso!');
+        } else {
+          alert('Erro ao emitir nota: ' + data.mensagem);
+        }
+      })
+      .catch(err => {
+        console.error('Erro ao emitir nota:', err);
+        alert('Erro ao emitir nota.');
+      });
+  });
+
+
+</script>
+
+<script src="/js/darkmode.js"></script>
+</body>
+</html>

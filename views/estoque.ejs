@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="transition-colors duration-300">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Princesa Reborn - Relatório de Estoque</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col min-h-screen font-sans transition-colors duration-300">
+
+  <%- include('partials/header') %>
+
+  <main class="flex-grow max-w-6xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6">
+      Estoque - Quiosque: <span id="nomeQuiosque" class="text-blue-600 dark:text-blue-400"></span>
+    </h1>
+
+    <!-- Seletor Quiosque só para admin -->
+    <div id="seletorAdmin" class="mb-4" style="<%= user.admin ? '' : 'display:none;' %>">
+      <label for="quiosqueSelect" class="block mb-2 font-semibold">Selecionar Quiosque:</label>
+      <select
+        id="quiosqueSelect"
+        class="w-full max-w-xs p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+      >
+        <!-- opções via JS -->
+      </select>
+    </div>
+
+    <!-- Filtro SKU -->
+    <input
+      type="text"
+      id="buscaSKU"
+      placeholder="Buscar por SKU..."
+      class="mb-6 w-full max-w-xs p-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+    />
+
+    <!-- Tabela Estoque -->
+    <div class="overflow-x-auto">
+      <table
+        id="tabelaEstoque"
+        class="min-w-full bg-white dark:bg-gray-800 rounded-md shadow overflow-hidden"
+        style="display:none;"
+      >
+        <thead class="bg-blue-600 dark:bg-blue-700 text-white">
+          <tr>
+            <th class="text-left py-3 px-4">SKU</th>
+            <th class="text-left py-3 px-4">Quantidade</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <%- include('partials/whatsapp') %>
+
+  <%- include('partials/footer') %>
+
+  <script>
+    const isAdmin = <%= user.admin ? 'true' : 'false' %>;
+
+    async function carregarQuiosques() {
+      const res = await fetch('/api/quiosques');
+      const data = await res.json();
+      const select = document.getElementById('quiosqueSelect');
+      select.innerHTML = '';
+
+      data.quiosques.forEach(({ id, nome }) => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = nome;
+        select.appendChild(option);
+      });
+
+      select.addEventListener('change', carregarEstoque);
+
+      if (data.quiosques.length > 0) {
+        select.value = data.quiosques[0].id;
+        await carregarEstoque();
+      }
+    }
+
+    async function carregarEstoque() {
+      let url = '/api/estoque';
+      if (isAdmin) {
+        const quiosqueId = document.getElementById('quiosqueSelect').value;
+        url += '?quiosque=' + encodeURIComponent(quiosqueId);
+      }
+
+      const res = await fetch(url);
+      const data = await res.json();
+
+      document.getElementById('nomeQuiosque').textContent = data.quiosque_nome || 'Erro interno';
+
+      const tbody = document.querySelector('#tabelaEstoque tbody');
+      tbody.innerHTML = '';
+
+      if (!data.skus || data.skus.length === 0) {
+        tbody.innerHTML = `<tr><td class="py-3 px-4 text-center text-gray-500 dark:text-gray-300" colspan="2">Nenhum item no estoque.</td></tr>`;
+      } else {
+        data.skus.forEach(({ sku, quantidade }) => {
+          const tr = document.createElement('tr');
+          tr.classList.add('hover:bg-gray-50', 'dark:hover:bg-gray-700');
+          tr.innerHTML = `
+            <td class="py-3 px-4 font-mono">${sku}</td>
+            <td class="py-3 px-4">
+              <input 
+                type="number" 
+                value="${quantidade}" 
+                min="0"
+                data-sku="${sku}"
+                ${!isAdmin ? 'disabled' : ''}
+                class="quantidade-input w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-black dark:text-white ${!isAdmin ? 'opacity-50 cursor-not-allowed' : ''}"
+              />
+
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        // Adiciona listener para inputs de quantidade
+        document.querySelectorAll('.quantidade-input').forEach(input => {
+          input.addEventListener('change', onQuantidadeChange);
+          input.addEventListener('blur', onQuantidadeChange);
+        });
+      }
+
+      document.getElementById('tabelaEstoque').style.display = 'table';
+    }
+
+    async function onQuantidadeChange(e) {
+      const input = e.target;
+      const novaQuantidade = parseInt(input.value, 10);
+      const sku = input.dataset.sku;
+      const quiosqueId = document.getElementById('quiosqueSelect').value;
+
+      if (isNaN(novaQuantidade) || novaQuantidade < 0) {
+        alert('Quantidade inválida. Use números maiores ou iguais a zero.');
+        // Voltar ao valor anterior
+        await carregarEstoque();
+        return;
+      }
+
+      // Envia atualização para backend
+      try {
+        const res = await fetch('/atualizar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sku, quantidade: novaQuantidade, quiosque_id: quiosqueId })
+        });
+
+        const data = await res.json();
+
+        if (data.status === 'ok') {
+          // Feedback visual positivo
+          input.classList.remove('border-red-600');
+          input.classList.add('border-green-600');
+          setTimeout(() => input.classList.remove('border-green-600'), 1500);
+        } else {
+          throw new Error(data.mensagem || 'Erro desconhecido');
+        }
+      } catch (error) {
+        alert('Erro ao atualizar estoque: ' + error.message);
+        input.classList.remove('border-green-600');
+        input.classList.add('border-red-600');
+      }
+    }
+
+    // Filtro por SKU
+    document.getElementById('buscaSKU').addEventListener('input', function () {
+      const filtro = this.value.toLowerCase();
+      document.querySelectorAll('#tabelaEstoque tbody tr').forEach(tr => {
+        const sku = tr.querySelector('td').textContent.toLowerCase();
+        tr.style.display = sku.includes(filtro) ? '' : 'none';
+      });
+    });
+
+    // Carregamento inicial
+    window.addEventListener('load', async () => {
+      if (isAdmin) {
+        await carregarQuiosques();
+      } else {
+        await carregarEstoque();
+      }
+    });
+  </script>
+
+  <script src="/js/darkmode.js"></script>
+</body>
+</html>
